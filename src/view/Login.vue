@@ -12,10 +12,13 @@
         <el-button type="primary" @click="login" style="width: 100%">登录</el-button>
       </el-form-item>
     </el-form>
+    <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
   </div>
 </template>
 
 <script>
+import { ElMessageBox } from 'element-plus';
+
 export default {
   data() {
     return {
@@ -26,17 +29,34 @@ export default {
       loginRules: {
         username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
         password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
-      }
+      },
+      errorMessage: '' // 用于显示错误信息
     };
   },
   created() {
     this.getRouterData();
   },
   methods: {
-    login() {
+    async login() {
       // 在这里获取用户名，并通过路由参数传递给 home 界面
-      const username = this.loginForm.username;
-      this.$router.push({ name: 'Home', params: { username } });
+      try {
+        const response = await this.$axios.post('/login', {
+          username: this.loginForm.username,
+          password: this.loginForm.password
+        });
+        if (response.status === 200) {
+          if (response.data.ok) {
+            const username = this.loginForm.username;
+            this.$router.push({ name: 'Home', params: { username } });
+          } else {
+              ElMessageBox.alert('登录失败: ' + response.data.error);
+          }
+        } else {
+          ElMessageBox.alert('登录失败: ' + response.status);
+        }
+      } catch (error) {
+        ElMessageBox.alert('登录失败: ' + error);
+      }
     },
     getRouterData() {
       const username = this.$route.params.username;
@@ -65,5 +85,10 @@ export default {
 
 .login-form {
   width: 300px;
+}
+
+.error-message {
+  color: red;
+  margin-top: 10px;
 }
 </style>
